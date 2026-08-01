@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RenewalBrain — nothing expires without warning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAF7F1; --card:#FFFFFF; --ink:#14231E; --muted:#68746E; --faint:#9AA49E;
+  --line:#E9E3D6; --line2:#DDD5C4;
+  --forest:#17604B; --forest2:#0F4736; --leaf:#DFF0E7;
+  --safe:#177A54; --soon:#B87A12; --urgent:#C94F32; --overdue:#A32014;
+  --safe-bg:#E7F4ED; --soon-bg:#FAF0DC; --urgent-bg:#FBE9E2; --overdue-bg:#F9E3E0;
+  --fd:"Fraunces",serif; --fb:"Plus Jakarta Sans",sans-serif; --fm:"JetBrains Mono",monospace;
+  --sh:0 1px 2px rgba(20,35,30,.05),0 10px 30px rgba(20,35,30,.07);
+  --sh2:0 2px 6px rgba(20,35,30,.08),0 24px 60px rgba(20,35,30,.14);
+  --r:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+::selection{background:var(--forest);color:#fff}
+button{font-family:inherit;cursor:pointer}
+input,textarea,select{font-family:inherit;font-size:.95rem;color:var(--ink)}
+:focus-visible{outline:2.5px solid var(--forest);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--fm)}
+
+/* ---------- top nav ---------- */
+nav{position:sticky;top:0;z-index:40;background:rgba(250,247,241,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:1180px;margin:0 auto;padding:.85rem 1.4rem;display:flex;align-items:center;gap:1rem}
+.brand{display:flex;align-items:center;gap:.6rem;margin-right:auto}
+.logo{width:38px;height:38px;border-radius:12px;background:var(--forest);display:grid;place-items:center;position:relative;box-shadow:0 4px 14px rgba(23,96,75,.35)}
+.logo::before{content:"";width:18px;height:18px;border-radius:50%;border:3px solid #fff;border-right-color:transparent;transform:rotate(35deg)}
+.logo::after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#B9F542;top:7px;right:7px}
+.brand b{font-family:var(--fd);font-weight:700;font-size:1.28rem;letter-spacing:-.01em}
+.brand small{display:block;font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.nav-btn{background:none;border:1.5px solid var(--line2);border-radius:12px;padding:.5rem .95rem;font-weight:600;font-size:.85rem;color:var(--ink);transition:all .15s}
+.nav-btn:hover{border-color:var(--forest);color:var(--forest)}
+.btn-add{background:var(--forest);color:#fff;border:none;border-radius:12px;padding:.62rem 1.25rem;font-weight:700;font-size:.9rem;box-shadow:0 4px 16px rgba(23,96,75,.35);transition:transform .12s, box-shadow .2s}
+.btn-add:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(23,96,75,.42)}
+.btn-add:active{transform:scale(.97)}
+
+main{max-width:1180px;margin:0 auto;padding:2rem 1.4rem 5rem}
+
+/* ---------- hero ---------- */
+.hero{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center;margin-bottom:1.6rem}
+.hero h1{font-family:var(--fd);font-weight:600;font-size:2.5rem;letter-spacing:-.02em;line-height:1.15}
+.hero h1 em{font-style:italic;color:var(--forest)}
+.hero .date{font-size:.9rem;color:var(--muted);margin-top:.3rem}
+.stats{display:flex;gap:.7rem;margin-top:1.1rem;flex-wrap:wrap}
+.stat{border-radius:14px;padding:.55rem 1.05rem;font-size:.85rem;font-weight:700;display:flex;gap:.5rem;align-items:center;border:1.5px solid transparent}
+.stat i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.stat.ok{background:var(--safe-bg);color:var(--safe)} .stat.ok i{background:var(--safe)}
+.stat.sn{background:var(--soon-bg);color:var(--soon)} .stat.sn i{background:var(--soon)}
+.stat.ur{background:var(--urgent-bg);color:var(--urgent)} .stat.ur i{background:var(--urgent)}
+.stat.ov{background:var(--overdue-bg);color:var(--overdue)} .stat.ov i{background:var(--overdue);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(163,32,20,.5)}55%{box-shadow:0 0 0 7px rgba(163,32,20,0)}}
+.ring-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:1.2rem 1.5rem;display:flex;align-items:center;gap:1.2rem}
+.ring-wrap{position:relative;width:118px;height:118px}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-fg{transition:stroke-dashoffset 1.2s cubic-bezier(.22,.9,.35,1)}
+.ring-val{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring-val b{font-family:var(--fd);font-size:1.9rem;font-weight:700;line-height:1}
+.ring-val small{font-size:.55rem;letter-spacing:.13em;color:var(--muted);font-weight:700}
+.ring-card p{font-size:.85rem;color:var(--muted);max-width:170px}
+.ring-card p b{color:var(--ink)}
+
+/* ---------- runway ---------- */
+.runway-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:1.3rem 1.5rem 1rem;margin-bottom:1.6rem;overflow:hidden}
+.runway-head{display:flex;align-items:baseline;gap:.8rem;margin-bottom:.9rem}
+.runway-head b{font-family:var(--fd);font-size:1.15rem;font-weight:600}
+.runway-head span{font-size:.78rem;color:var(--muted)}
+.runway{position:relative;height:118px;overflow-x:auto;overflow-y:hidden}
+.rw-inner{position:relative;height:100%;min-width:100%}
+.rw-axis{position:absolute;left:0;right:0;top:78px;height:2px;background:var(--line2)}
+.rw-tick{position:absolute;top:70px;width:1.5px;height:12px;background:var(--line2)}
+.rw-lab{position:absolute;top:88px;font-size:.66rem;color:var(--faint);font-weight:600;letter-spacing:.05em;transform:translateX(-50%)}
+.rw-today{position:absolute;top:8px;bottom:14px;width:2.5px;background:var(--forest);border-radius:2px}
+.rw-today::after{content:"TODAY";position:absolute;top:-4px;left:8px;font-size:.6rem;font-weight:800;letter-spacing:.1em;color:var(--forest)}
+.rw-item{position:absolute;top:26px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:transform .15s}
+.rw-item:hover{transform:translateX(-50%) translateY(-3px)}
+.rw-dot{width:15px;height:15px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 5px rgba(20,35,30,.3)}
+.rw-item span{font-size:.66rem;font-weight:700;color:var(--muted);background:var(--bg);padding:.1rem .45rem;border-radius:7px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line)}
+.rw-empty{color:var(--faint);font-size:.85rem;padding:2.4rem 0;text-align:center}
+
+/* ---------- filters ---------- */
+.filters{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap;margin-bottom:1.4rem}
+.chip{border:1.5px solid var(--line2);background:var(--card);border-radius:999px;padding:.42rem .95rem;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .15s;display:flex;gap:.4rem;align-items:center}
+.chip:hover{border-color:var(--forest);color:var(--forest)}
+.chip.on{background:var(--forest);border-color:var(--forest);color:#fff}
+.chip .n{font-size:.7rem;opacity:.75}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;font-weight:800;color:#fff;border:2.5px solid var(--card);box-shadow:0 1px 4px rgba(20,35,30,.2);cursor:pointer;transition:transform .12s}
+.av:hover{transform:scale(1.1)}
+.av.on{outline:2.5px solid var(--forest);outline-offset:1.5px}
+.search{margin-left:auto;border:1.5px solid var(--line2);border-radius:12px;padding:.5rem .95rem;background:var(--card);min-width:210px}
+
+/* ---------- groups & cards ---------- */
+.group{margin-bottom:1.7rem}
+.group-h{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem}
+.group-h b{font-family:var(--fd);font-size:1.12rem;font-weight:600}
+.group-h .cnt{font-size:.72rem;font-weight:800;padding:.14rem .55rem;border-radius:8px}
+.g-ov .cnt{background:var(--overdue-bg);color:var(--overdue)} .g-ur .cnt{background:var(--urgent-bg);color:var(--urgent)}
+.g-sn .cnt{background:var(--soon-bg);color:var(--soon)} .g-ok .cnt{background:var(--safe-bg);color:var(--safe)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:.9rem}
+.item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:1.05rem 1.15rem;transition:transform .15s, box-shadow .2s;position:relative}
+.item:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.item-top{display:flex;gap:.8rem;align-items:flex-start}
+.glyph{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:1.35rem;flex-shrink:0}
+.item h3{font-size:1.02rem;font-weight:700;line-height:1.3}
+.item .sub{font-size:.78rem;color:var(--muted);margin-top:.1rem;display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
+.pv{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font-size:.56rem;font-weight:800;color:#fff}
+.days{margin-left:auto;text-align:center;flex-shrink:0}
+.days b{font-family:var(--fd);font-size:1.5rem;font-weight:700;line-height:1;display:block}
+.days small{font-size:.58rem;letter-spacing:.1em;font-weight:800;color:var(--muted)}
+.dates{display:flex;gap:1.1rem;margin:.8rem 0 .75rem;padding:.55rem .8rem;background:var(--bg);border-radius:12px}
+.dt small{display:block;font-size:.58rem;letter-spacing:.12em;font-weight:800;color:var(--faint)}
+.dt b{font-family:var(--fm);font-size:.86rem;font-weight:700}
+.item-actions{display:flex;gap:.5rem}
+.ib{flex:1;border:1.5px solid var(--line2);background:none;border-radius:11px;padding:.44rem .5rem;font-size:.8rem;font-weight:700;color:var(--ink);transition:all .15s}
+.ib:hover{border-color:var(--forest);color:var(--forest)}
+.ib.primary{background:var(--leaf);border-color:transparent;color:var(--forest2)}
+.ib.primary:hover{background:#CFE9DB}
+.ib.icon{flex:0 0 44px}
+.badge-strip{position:absolute;top:0;left:22px;right:22px;height:4px;border-radius:0 0 6px 6px}
+
+/* ---------- empty / onboarding ---------- */
+.empty{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:3rem 2rem;text-align:center}
+.empty h2{font-family:var(--fd);font-weight:600;font-size:1.7rem;margin-bottom:.4rem}
+.empty p{color:var(--muted);max-width:480px;margin:0 auto 1.6rem}
+.steps3{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.8rem}
+.step3{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:1rem 1.2rem;max-width:220px;text-align:left}
+.step3 .em{font-size:1.6rem}
+.step3 b{display:block;font-size:.9rem;margin:.3rem 0 .15rem}
+.step3 span{font-size:.78rem;color:var(--muted)}
+
+/* ---------- sheet / modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(20,35,30,.45);backdrop-filter:blur(3px);z-index:60;display:none;align-items:flex-end;justify-content:center}
+.overlay.on{display:flex;animation:fade .2s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{background:var(--card);width:min(660px,100%);max-height:92vh;overflow:auto;border-radius:26px 26px 0 0;padding:1.6rem 1.8rem 2rem;box-shadow:var(--sh2);animation:rise .3s cubic-bezier(.22,.9,.35,1)}
+@keyframes rise{from{transform:translateY(50px);opacity:.4}to{transform:none;opacity:1}}
+@media(min-width:700px){.overlay{align-items:center}.sheet{border-radius:26px}}
+.sheet h2{font-family:var(--fd);font-weight:600;font-size:1.5rem;margin-bottom:.2rem}
+.sheet .sub2{font-size:.86rem;color:var(--muted);margin-bottom:1.2rem}
+.modetabs{display:flex;gap:.5rem;margin-bottom:1.2rem}
+.mt{flex:1;border:1.5px solid var(--line2);background:none;border-radius:13px;padding:.65rem;font-weight:700;font-size:.86rem;color:var(--muted)}
+.mt.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.drop{border:2.5px dashed var(--line2);border-radius:18px;padding:2.2rem 1rem;text-align:center;transition:all .15s;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--forest);background:var(--leaf)}
+.drop .em{font-size:2.2rem}
+.drop b{display:block;margin:.4rem 0 .1rem}
+.drop span{font-size:.8rem;color:var(--muted)}
+.lab{display:block;font-size:.64rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:800;margin:.9rem 0 .35rem}
+.inp,textarea.inp,select.inp{width:100%;border:1.5px solid var(--line2);border-radius:12px;padding:.68rem .85rem;background:#FDFCF9}
+.inp:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 3.5px rgba(23,96,75,.14)}
+textarea.inp{min-height:110px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+@media(max-width:560px){.row2{grid-template-columns:1fr}}
+.sheet-actions{display:flex;gap:.7rem;margin-top:1.4rem}
+.btn-go{flex:1;background:var(--forest);color:#fff;border:none;border-radius:13px;padding:.85rem;font-weight:800;font-size:.95rem;box-shadow:0 4px 16px rgba(23,96,75,.3)}
+.btn-go:disabled{opacity:.5}
+.btn-quiet{border:1.5px solid var(--line2);background:none;border-radius:13px;padding:.85rem 1.3rem;font-weight:700;color:var(--muted)}
+.shimmer{height:12px;border-radius:7px;background:linear-gradient(90deg,var(--line) 25%,#F3EEE3 50%,var(--line) 75%);background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.conf-bar{height:9px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:.3rem}
+.conf-bar i{display:block;height:100%;border-radius:5px;background:var(--forest);transition:width .8s ease}
+.privacy-note{display:flex;gap:.5rem;align-items:flex-start;background:var(--leaf);border-radius:12px;padding:.65rem .85rem;font-size:.78rem;color:var(--forest2);margin-top:1rem;font-weight:600}
+.err{color:var(--urgent);font-size:.85rem;margin-top:.6rem;font-weight:600}
+
+/* ---------- playbook drawer ---------- */
+.drawer{position:fixed;top:0;right:-480px;width:min(460px,94vw);height:100vh;background:var(--card);box-shadow:var(--sh2);z-index:70;transition:right .32s cubic-bezier(.22,.9,.35,1);padding:1.7rem 1.6rem;overflow:auto}
+.drawer.on{right:0}
+.drawer h2{font-family:var(--fd);font-weight:600;font-size:1.35rem;padding-right:2rem}
+.drawer .close{position:absolute;top:1.2rem;right:1.2rem;border:none;background:var(--bg);width:36px;height:36px;border-radius:11px;font-size:1rem;font-weight:800}
+.pb-step{display:flex;gap:.75rem;padding:.5rem 0;align-items:flex-start}
+.pb-step input{width:17px;height:17px;margin-top:4px;accent-color:var(--forest)}
+.pb-step span{font-size:.9rem}
+.pb-sec{font-size:.64rem;letter-spacing:.13em;font-weight:800;color:var(--muted);margin:1.2rem 0 .4rem}
+.pb-doc{font-size:.86rem;padding:.22rem 0;color:var(--ink)}
+.pb-doc::before{content:"— "}
+.pb-tip{background:var(--soon-bg);border-radius:13px;padding:.8rem .95rem;font-size:.85rem;color:#7A5510;margin-top:1rem}
+.pb-verify{font-size:.74rem;color:var(--faint);margin-top:1rem;font-style:italic}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;bottom:1.6rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;border-radius:13px;padding:.75rem 1.3rem;font-size:.88rem;font-weight:600;box-shadow:var(--sh2);z-index:90;transition:transform .3s cubic-bezier(.22,.9,.35,1);max-width:92vw}
+#toast.on{transform:translateX(-50%) translateY(0)}
+
+@media(max-width:760px){
+  .hero{grid-template-columns:1fr}
+  .hero h1{font-size:1.9rem}
+  .ring-card{justify-content:center}
+  .search{min-width:0;flex:1}
+}
+</style>
+</head>
+<body>
+
+<nav><div class="nav-in">
+  <div class="brand">
+    <div class="logo"></div>
+    <div><b>RenewalBrain</b><small>Nothing expires without warning</small></div>
+  </div>
+  <button class="nav-btn" id="exportBtn">Export</button>
+  <label class="nav-btn" style="margin:0">Import<input type="file" id="importFile" accept=".json" hidden></label>
+  <button class="btn-add" id="addBtn">+ Add something</button>
+</div></nav>
+
+<main>
+  <div class="hero">
+    <div>
+      <h1>Your life, <em>on time.</em></h1>
+      <div class="date" id="todayLine"></div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="ring-card">
+      <div class="ring-wrap">
+        <svg width="118" height="118" viewBox="0 0 118 118">
+          <circle cx="59" cy="59" r="50" stroke="#EDE7DA" stroke-width="11" fill="none"/>
+          <circle id="ringFg" class="ring-fg" cx="59" cy="59" r="50" stroke="#177A54" stroke-width="11" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="ring-val"><div><b id="healthPct">–</b><br><small>LIFE HEALTH</small></div></div>
+      </div>
+      <p id="healthMsg"><b>Add your first item</b> to see how on-time your life is.</p>
+    </div>
+  </div>
+
+  <div class="runway-card">
+    <div class="runway-head"><b>The next 90 days</b><span>each dot is a deadline approaching — positioned by its act-by date</span></div>
+    <div class="runway" id="runway"></div>
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div id="groups"></div>
+
+  <div class="empty" id="empty" style="display:none">
+    <h2>Everything in your life that expires — one calm view.</h2>
+    <p>Passports, visas, insurance, warranties, licences, domains, prescriptions. Photograph any of them and RenewalBrain remembers the deadline — and when to act.</p>
+    <div class="steps3">
+      <div class="step3"><div class="em">📸</div><b>1. Snap it</b><span>Photo or paste any document — even a receipt.</span></div>
+      <div class="step3"><div class="em">🧠</div><b>2. It reads it</b><span>AI extracts what it is and when to act — never your document numbers.</span></div>
+      <div class="step3"><div class="em">🛎️</div><b>3. Never blindsided</b><span>See everything on one runway, with renewal playbooks built in.</span></div>
+    </div>
+    <button class="btn-add" id="sampleBtn">Load a sample life →</button>
+    <span style="display:inline-block;width:.6rem"></span>
+    <button class="nav-btn" id="emptyAddBtn">Add my first item</button>
+  </div>
+</main>
+
+<!-- ============ ADD SHEET ============ -->
+<div class="overlay" id="addOverlay">
+  <div class="sheet">
+    <h2 id="sheetTitle">Add something that expires</h2>
+    <p class="sub2">A photo is fastest — RenewalBrain reads it and fills everything in.</p>
+    <div class="modetabs">
+      <button class="mt on" data-mode="photo">📸 Photo</button>
+      <button class="mt" data-mode="text">📝 Paste text</button>
+      <button class="mt" data-mode="manual">✍️ Manual</button>
+    </div>
+
+    <div id="modePhoto">
+      <div class="drop" id="drop">
+        <div class="em">🪪</div>
+        <b>Drop a document photo — or tap to choose</b>
+        <span>Passport page, insurance certificate, receipt, licence… JPG/PNG, under 6 MB</span>
+        <input type="file" id="fileInput" accept="image/*" capture="environment" hidden>
+      </div>
+      <div id="reading" style="display:none;margin-top:1rem">
+        <div class="shimmer" style="width:70%"></div>
+        <div class="shimmer" style="width:45%;margin-top:.5rem"></div>
+        <p style="font-size:.85rem;color:var(--muted);margin-top:.6rem">Reading the document…</p>
+      </div>
+    </div>
+
+    <div id="modeText" style="display:none">
+      <label class="lab" for="pasteText">Paste the letter / email / document text</label>
+      <textarea class="inp" id="pasteText" placeholder="e.g. Your motor insurance policy is due for renewal on 14 March 2027…"></textarea>
+      <div class="sheet-actions"><button class="btn-go" id="readTextBtn">Read it →</button></div>
+    </div>
+
+    <div id="modeManual" style="display:none"></div>
+
+    <!-- confirm form (shared) -->
+    <div id="confirmBox" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:1.2rem">
+        <b style="font-family:var(--fd);font-size:1.1rem">Here's what I read — check it</b>
+        <span id="confLabel" style="font-size:.72rem;font-weight:800;color:var(--muted)"></span>
+      </div>
+      <div class="conf-bar"><i id="confFill" style="width:0"></i></div>
+      <div class="row2" style="margin-top:.9rem">
+        <div><label class="lab">What is it?</label><input class="inp" id="fTitle"></div>
+        <div><label class="lab">Type</label>
+          <select class="inp" id="fType">
+            <option value="passport">Passport</option><option value="visa">Visa / permit</option>
+            <option value="driving-license">Driving licence</option><option value="vehicle-insurance">Vehicle insurance</option>
+            <option value="vehicle-revenue-license">Vehicle revenue licence</option><option value="health-insurance">Health insurance</option>
+            <option value="warranty">Warranty</option><option value="domain">Domain</option>
+            <option value="professional-cert">Professional cert</option><option value="prescription">Prescription</option>
+            <option value="subscription">Subscription</option><option value="id-card">ID card</option>
+            <option value="tenancy">Tenancy</option><option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2" style="margin-top:.2rem">
+        <div><label class="lab">Category</label>
+          <select class="inp" id="fCategory">
+            <option>Travel</option><option>Vehicle</option><option>Home</option><option>Health</option>
+            <option>Work</option><option>Digital</option><option>Finance</option><option>Other</option>
+          </select>
+        </div>
+        <div><label class="lab">Whose is it? (first name)</label><input class="inp" id="fPerson" placeholder="e.g. Kalaru"></div>
+      </div>
+      <div class="row2" style="margin-top:.2rem">
+        <div><label class="lab">Expires on</label><input class="inp" id="fExpires" type="date"></div>
+        <div><label class="lab">Act by (auto from lead time)</label><input class="inp" id="fActBy" type="date"></div>
+      </div>
+      <div class="row2" style="margin-top:.2rem">
+        <div><label class="lab">Issuer</label><input class="inp" id="fIssuer" placeholder="e.g. Ceylinco"></div>
+        <div><label class="lab">Country</label><input class="inp" id="fCountry" placeholder="LK / UK / *"></div>
+      </div>
+      <label class="lab">Note</label><input class="inp" id="fNotes">
+      <div class="privacy-note" id="privacyNote" style="display:none">🔒 <span>Image processed and discarded — only the labels and dates above are stored. No document numbers, ever.</span></div>
+      <p class="err" id="addErr"></p>
+      <div class="sheet-actions">
+        <button class="btn-quiet" id="cancelAdd">Cancel</button>
+        <button class="btn-go" id="saveItem">Save to my timeline ✓</button>
+      </div>
+    </div>
+    <p class="err" id="sheetErr"></p>
+  </div>
+</div>
+
+<!-- ============ RENEWED SHEET ============ -->
+<div class="overlay" id="renewOverlay">
+  <div class="sheet" style="max-width:480px">
+    <h2>Nice — mark it renewed 🎉</h2>
+    <p class="sub2" id="renewSub"></p>
+    <label class="lab">New expiry date</label>
+    <input class="inp" type="date" id="renewDate">
+    <div class="sheet-actions">
+      <button class="btn-quiet" id="cancelRenew">Cancel</button>
+      <button class="btn-go" id="confirmRenew">Update ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PLAYBOOK DRAWER ============ -->
+<div class="drawer" id="drawer">
+  <button class="close" id="drawerClose">✕</button>
+  <h2 id="pbTitle"></h2>
+  <p style="font-size:.8rem;color:var(--muted)" id="pbMeta"></p>
+  <div class="pb-sec">HOW TO RENEW</div>
+  <div id="pbSteps"></div>
+  <div class="pb-sec">DOCUMENTS YOU'LL NEED</div>
+  <div id="pbDocs"></div>
+  <div class="pb-tip" id="pbTip"></div>
+  <p class="pb-verify">Playbooks are general guidance — always verify current requirements and fees with the official source before acting.</p>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const DAY = 86400000;
+const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+const parseD = s => { const d = new Date(s+"T00:00:00"); return isNaN(d) ? null : d; };
+const fmtD = d => d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+const daysUntil = s => { const d = parseD(s); return d ? Math.round((d - today())/DAY) : null; };
+
+const GLYPH = {Travel:["🛂","#E8F0FA"],Vehicle:["🚗","#FAF0DC"],Home:["🏠","#EFEAF9"],Health:["💊","#FBE9E2"],
+               Work:["💼","#E7F4ED"],Digital:["🌐","#E4F2F5"],Finance:["🏦","#F3EDE0"],Other:["📄","#EFECE4"]};
+const AVCOLORS = ["#17604B","#B87A12","#5B6ABF","#C94F32","#8A5BBF","#2E7D9A"];
+const avColor = name => AVCOLORS[[...name].reduce((a,c)=>a+c.charCodeAt(0),0)%AVCOLORS.length];
+
+const statusOf = it => {
+  const dl = daysUntil(it.expiresOn); const ab = daysUntil(it.actByOn || it.expiresOn);
+  if (dl !== null && dl < 0) return "overdue";
+  if (ab !== null && ab <= 0) return "urgent";
+  if (ab !== null && ab <= 14) return "soon";
+  return "safe";
+};
+const SCOL = {overdue:"var(--overdue)",urgent:"var(--urgent)",soon:"var(--soon)",safe:"var(--safe)"};
+const SHEX = {overdue:"#A32014",urgent:"#C94F32",soon:"#B87A12",safe:"#177A54"};
+
+let items = [], catFilter = null, personFilter = null, q = "";
+
+/* ---------- load & render ---------- */
+async function load(){
+  const res = await fetch("/api/items");
+  items = await res.json();
+  render();
+}
+function render(){
+  $("todayLine").textContent = today().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const hasItems = items.length > 0;
+  $("empty").style.display = hasItems ? "none" : "block";
+
+  // stats + health
+  const by = {overdue:0,urgent:0,soon:0,safe:0};
+  items.forEach(it => by[statusOf(it)]++);
+  $("stats").innerHTML = hasItems ? `
+    ${by.overdue?`<span class="stat ov"><i></i>${by.overdue} overdue</span>`:""}
+    ${by.urgent?`<span class="stat ur"><i></i>${by.urgent} act now</span>`:""}
+    ${by.soon?`<span class="stat sn"><i></i>${by.soon} coming up</span>`:""}
+    <span class="stat ok"><i></i>${by.safe} safe</span>` : "";
+  const pct = hasItems ? Math.round(by.safe/items.length*100) : null;
+  const C = 2*Math.PI*50;
+  const fg = $("ringFg");
+  fg.setAttribute("stroke-dasharray", C);
+  if (pct === null){ fg.setAttribute("stroke-dashoffset", C); $("healthPct").textContent = "–"; }
+  else {
+    fg.setAttribute("stroke", pct>=80?"#177A54":pct>=50?"#B87A12":"#C94F32");
+    requestAnimationFrame(()=>requestAnimationFrame(()=>fg.setAttribute("stroke-dashoffset", C*(1-pct/100))));
+    $("healthPct").textContent = pct + "%";
+    $("healthMsg").innerHTML = pct===100 ? "<b>Everything is on time.</b> This is the feeling." :
+      by.overdue ? `<b>${by.overdue} thing${by.overdue>1?"s":""} already expired.</b> Start there — the playbook is one tap away.` :
+      by.urgent ? `<b>${by.urgent} deadline${by.urgent>1?"s":""} need action now.</b> The rest of your life is on time.` :
+      `<b>Nothing is on fire.</b> ${by.soon||"Some"} item${by.soon===1?"":"s"} coming up soon.`;
+  }
+
+  renderRunway();
+  renderFilters();
+  renderGroups();
+}
+
+function renderRunway(){
+  const horizon = 90;
+  const upcoming = items.map(it => ({it, d: daysUntil(it.actByOn || it.expiresOn)}))
+    .filter(x => x.d !== null && x.d >= -7 && x.d <= horizon)
+    .sort((a,b)=>a.d-b.d);
+  const rw = $("runway");
+  if (!items.length){ rw.innerHTML = '<div class="rw-empty">Your deadlines will appear here, approaching left to right.</div>'; return; }
+  if (!upcoming.length){ rw.innerHTML = '<div class="rw-empty">Nothing due in the next 90 days — enjoy it. 🌿</div>'; return; }
+  const width = Math.max(rw.clientWidth || 900, 900);
+  const pad = 70;
+  const x = d => pad + ((d+7)/(horizon+7))*(width-pad*2);
+  let html = `<div class="rw-inner" style="width:${width}px">`;
+  html += `<div class="rw-axis"></div><div class="rw-today" style="left:${x(0)}px"></div>`;
+  for (const m of [30,60,90]) html += `<div class="rw-tick" style="left:${x(m)}px"></div><div class="rw-lab" style="left:${x(m)}px">${m}d</div>`;
+  // collision-avoid: alternate label visibility when crowded
+  let lastX = -999;
+  for (const {it,d} of upcoming){
+    const st = statusOf(it);
+    const px = x(d);
+    const showLab = px - lastX > 64;
+    if (showLab) lastX = px;
+    html += `<div class="rw-item" style="left:${px}px" onclick="scrollToItem('${esc(it.id)}')">
+      <div class="rw-dot" style="background:${SHEX[st]}"></div>
+      ${showLab?`<span>${esc(it.title)}</span>`:""}
+    </div>`;
+  }
+  html += `</div>`;
+  rw.innerHTML = html;
+}
+
+function renderFilters(){
+  if (!items.length){ $("filters").innerHTML=""; return; }
+  const cats = {};
+  items.forEach(it => cats[it.category||"Other"] = (cats[it.category||"Other"]||0)+1);
+  const people = [...new Set(items.map(i=>i.person).filter(Boolean))];
+  let html = `<button class="chip ${!catFilter?"on":""}" onclick="setCat(null)">All <span class="n">${items.length}</span></button>`;
+  for (const [c,n] of Object.entries(cats))
+    html += `<button class="chip ${catFilter===c?"on":""}" onclick="setCat('${esc(c)}')">${GLYPH[c]?.[0]||"📄"} ${esc(c)} <span class="n">${n}</span></button>`;
+  if (people.length > 1){
+    html += `<span style="width:.4rem"></span>`;
+    for (const p of people)
+      html += `<span class="av ${personFilter===p?"on":""}" style="background:${avColor(p)}" title="${esc(p)}" onclick="setPerson('${esc(p)}')">${esc(p[0].toUpperCase())}</span>`;
+  }
+  html += `<input class="search" id="searchBox" placeholder="Search…" value="${esc(q)}">`;
+  $("filters").innerHTML = html;
+  $("searchBox").oninput = e => { q = e.target.value; renderGroups(); };
+}
+window.setCat = c => { catFilter = catFilter===c?null:c; render(); };
+window.setPerson = p => { personFilter = personFilter===p?null:p; render(); };
+
+function visible(){
+  return items.filter(it =>
+    (!catFilter || (it.category||"Other")===catFilter) &&
+    (!personFilter || it.person===personFilter) &&
+    (!q || (it.title+" "+(it.issuer||"")+" "+(it.person||"")).toLowerCase().includes(q.toLowerCase())));
+}
+
+function renderGroups(){
+  const v = visible();
+  const groups = {overdue:[],urgent:[],soon:[],safe:[]};
+  v.forEach(it => groups[statusOf(it)].push(it));
+  for (const k in groups) groups[k].sort((a,b)=> (parseD(a.actByOn||a.expiresOn)||0) - (parseD(b.actByOn||b.expiresOn)||0));
+  const meta = [["overdue","Already expired","g-ov"],["urgent","Act now","g-ur"],["soon","Coming up","g-sn"],["safe","On time","g-ok"]];
+  let html = "";
+  for (const [key,label,cls] of meta){
+    if (!groups[key].length) continue;
+    html += `<div class="group ${cls}"><div class="group-h"><b>${label}</b><span class="cnt">${groups[key].length}</span></div><div class="grid">`;
+    html += groups[key].map(cardHtml).join("");
+    html += `</div></div>`;
+  }
+  $("groups").innerHTML = html || (items.length ? `<p style="color:var(--muted);text-align:center;padding:2rem">Nothing matches those filters.</p>` : "");
+}
+
+function cardHtml(it){
+  const st = statusOf(it);
+  const [em,bg] = GLYPH[it.category] || GLYPH.Other;
+  const dl = daysUntil(it.expiresOn);
+  const ab = daysUntil(it.actByOn || it.expiresOn);
+  const big = st==="overdue" ? Math.abs(dl) : (st==="safe" ? dl : Math.max(ab,0));
+  const lab = st==="overdue" ? "DAYS AGO" : (st==="safe" ? "DAYS LEFT" : "DAYS TO ACT");
+  return `<div class="item" id="card-${esc(it.id)}">
+    <div class="badge-strip" style="background:${SCOL[st]}"></div>
+    <div class="item-top">
+      <div class="glyph" style="background:${bg}">${em}</div>
+      <div style="min-width:0">
+        <h3>${esc(it.title)}</h3>
+        <div class="sub">${esc(it.issuer||"")}
+          ${it.person?`<span class="pv" style="background:${avColor(it.person)}">${esc(it.person[0].toUpperCase())}</span>${esc(it.person)}`:""}
+        </div>
+      </div>
+      <div class="days"><b style="color:${SCOL[st]}">${big ?? "–"}</b><small>${lab}</small></div>
+    </div>
+    <div class="dates">
+      <div class="dt"><small>ACT BY</small><b style="color:${SCOL[st]}">${it.actByOn?fmtD(parseD(it.actByOn)):"—"}</b></div>
+      <div class="dt"><small>EXPIRES</small><b>${it.expiresOn?fmtD(parseD(it.expiresOn)):"—"}</b></div>
+    </div>
+    <div class="item-actions">
+      <button class="ib primary" onclick="openPlaybook('${esc(it.type)}','${esc(it.country||"*")}','${esc(it.title)}')">📖 Playbook</button>
+      <button class="ib" onclick="openRenew('${esc(it.id)}')">✓ Renewed</button>
+      <button class="ib icon" title="Snooze 7 days" onclick="snooze('${esc(it.id)}')">💤</button>
+      <button class="ib icon" title="Delete" onclick="delItem('${esc(it.id)}')">🗑</button>
+    </div>
+  </div>`;
+}
+window.scrollToItem = id => {
+  const el = $("card-"+id);
+  if (!el) return;
+  el.scrollIntoView({behavior:"smooth",block:"center"});
+  el.style.boxShadow = "0 0 0 3px var(--forest), var(--sh2)";
+  setTimeout(()=>el.style.boxShadow="",1600);
+};
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){
+  $("toast").textContent = msg;
+  $("toast").classList.add("on");
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>$("toast").classList.remove("on"), 2800);
+}
+
+/* ---------- add sheet ---------- */
+const overlay = $("addOverlay");
+function openAdd(){ overlay.classList.add("on"); setMode("photo"); resetConfirm(); }
+function closeAdd(){ overlay.classList.remove("on"); }
+$("addBtn").onclick = openAdd;
+$("emptyAddBtn").onclick = openAdd;
+overlay.onclick = e => { if (e.target === overlay) closeAdd(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape"){ closeAdd(); $("renewOverlay").classList.remove("on"); $("drawer").classList.remove("on"); }});
+
+let mode = "photo";
+function setMode(m){
+  mode = m;
+  document.querySelectorAll(".mt").forEach(b => b.classList.toggle("on", b.dataset.mode===m));
+  $("modePhoto").style.display = m==="photo" ? "block" : "none";
+  $("modeText").style.display = m==="text" ? "block" : "none";
+  if (m === "manual"){ showConfirm({title:"",type:"other",category:"Other",issuer:"",country:"*",person:"",expiresOn:"",leadDays:30,notes:"",confidence:null}); }
+  else if ($("confirmBox").style.display==="block" && !lastExtract) $("confirmBox").style.display = "none";
+}
+document.querySelectorAll(".mt").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
+function resetConfirm(){ lastExtract = null; $("confirmBox").style.display="none"; $("reading").style.display="none"; $("sheetErr").textContent=""; $("addErr").textContent=""; $("pasteText").value=""; }
+
+/* photo flow */
+const drop = $("drop");
+drop.onclick = () => $("fileInput").click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); };
+$("fileInput").onchange = e => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value=""; };
+
+async function readFile(file){
+  if (file.size > 6_000_000){ $("sheetErr").textContent = "Image too large — keep it under 6 MB."; return; }
+  $("sheetErr").textContent = "";
+  $("reading").style.display = "block";
+  $("confirmBox").style.display = "none";
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(",")[1]);
+      r.onerror = () => rej(new Error("read failed"));
+      r.readAsDataURL(file);
+    });
+    await extract({ imageBase64: b64, mimeType: file.type || "image/jpeg" }, true);
+  }catch(e){ $("sheetErr").textContent = e.message; }
+  finally{ $("reading").style.display = "none"; }
+}
+$("readTextBtn").onclick = async () => {
+  const t = $("pasteText").value.trim();
+  if (t.length < 12){ $("sheetErr").textContent = "Paste a bit more of the document text."; return; }
+  $("sheetErr").textContent = "";
+  $("readTextBtn").disabled = true; $("readTextBtn").textContent = "Reading…";
+  try{ await extract({ text: t }, false); }
+  catch(e){ $("sheetErr").textContent = e.message; }
+  finally{ $("readTextBtn").disabled = false; $("readTextBtn").textContent = "Read it →"; }
+};
+
+let lastExtract = null;
+async function extract(payload, wasImage){
+  const res = await fetch("/api/extract", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+  if (res.status === 429) throw new Error("A little too fast — wait a couple of minutes.");
+  const d = await res.json();
+  if (!res.ok) throw new Error(d.error || "Couldn't read that — try manual entry.");
+  lastExtract = d;
+  showConfirm(d, wasImage);
+}
+function showConfirm(d, wasImage=false){
+  $("confirmBox").style.display = "block";
+  $("fTitle").value = d.title || "";
+  $("fType").value = d.type || "other";
+  $("fCategory").value = d.category || "Other";
+  $("fPerson").value = d.person || "";
+  $("fExpires").value = d.expiresOn || "";
+  $("fActBy").value = d.actByOn || "";
+  $("fIssuer").value = d.issuer || "";
+  $("fCountry").value = d.country || "*";
+  $("fNotes").value = d.notes || "";
+  if (d.confidence != null){
+    $("confLabel").textContent = `AI CONFIDENCE ${d.confidence}%`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>$("confFill").style.width = d.confidence+"%"));
+  } else { $("confLabel").textContent = ""; $("confFill").style.width = "0"; }
+  $("privacyNote").style.display = wasImage ? "flex" : "none";
+}
+$("fExpires").onchange = () => {
+  const d = parseD($("fExpires").value);
+  if (!d) return;
+  const lead = {passport:180,visa:60,"driving-license":30,"vehicle-insurance":30,"vehicle-revenue-license":21,"health-insurance":30,warranty:14,domain:30,"professional-cert":60,prescription:7,subscription:7,"id-card":60,tenancy:60,other:30}[$("fType").value] || 30;
+  $("fActBy").value = new Date(d - lead*DAY).toISOString().slice(0,10);
+};
+$("cancelAdd").onclick = closeAdd;
+$("saveItem").onclick = async () => {
+  const body = {
+    title: $("fTitle").value.trim(), type: $("fType").value, category: $("fCategory").value,
+    person: $("fPerson").value.trim(), expiresOn: $("fExpires").value, actByOn: $("fActBy").value || null,
+    issuer: $("fIssuer").value.trim(), country: $("fCountry").value.trim() || "*", notes: $("fNotes").value.trim()
+  };
+  if (!body.title || !body.expiresOn){ $("addErr").textContent = "A name and an expiry date are the minimum."; return; }
+  $("saveItem").disabled = true;
+  const res = await fetch("/api/items", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+  $("saveItem").disabled = false;
+  if (!res.ok){ $("addErr").textContent = "Couldn't save — check the dates."; return; }
+  closeAdd();
+  toast(`Saved — you'll never be blindsided by "${body.title}" ✓`);
+  load();
+};
+
+/* ---------- renew ---------- */
+let renewId = null;
+window.openRenew = id => {
+  const it = items.find(i => i.id === id); if (!it) return;
+  renewId = id;
+  $("renewSub").textContent = `"${it.title}" — set the new expiry and the runway updates.`;
+  const old = parseD(it.expiresOn) || today();
+  const next = new Date(old); next.setFullYear(next.getFullYear()+1);
+  $("renewDate").value = next.toISOString().slice(0,10);
+  $("renewOverlay").classList.add("on");
+};
+$("cancelRenew").onclick = () => $("renewOverlay").classList.remove("on");
+$("renewOverlay").onclick = e => { if (e.target === $("renewOverlay")) $("renewOverlay").classList.remove("on"); };
+$("confirmRenew").onclick = async () => {
+  if (!renewId || !$("renewDate").value) return;
+  await fetch("/api/items/"+renewId, { method:"PATCH", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ expiresOn: $("renewDate").value, lastRenewedOn: new Date().toISOString().slice(0,10) })});
+  $("renewOverlay").classList.remove("on");
+  toast("Renewed 🎉 — back to green.");
+  load();
+};
+window.snooze = async id => {
+  const it = items.find(i => i.id === id); if (!it) return;
+  const ab = parseD(it.actByOn || it.expiresOn) || today();
+  const next = new Date(Math.max(ab.getTime(), today().getTime()) + 7*DAY);
+  await fetch("/api/items/"+id, { method:"PATCH", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ actByOn: next.toISOString().slice(0,10) })});
+  toast("Snoozed a week 💤");
+  load();
+};
+window.delItem = async id => {
+  const it = items.find(i => i.id === id);
+  if (!confirm(`Remove "${it?.title}" from your timeline?`)) return;
+  await fetch("/api/items/"+id, { method:"DELETE" });
+  toast("Removed.");
+  load();
+};
+
+/* ---------- playbook ---------- */
+window.openPlaybook = async (type, country, title) => {
+  const res = await fetch(`/api/playbook?type=${encodeURIComponent(type)}&country=${encodeURIComponent(country)}`);
+  const dr = $("drawer");
+  if (!res.ok){
+    $("pbTitle").textContent = title;
+    $("pbMeta").textContent = "No playbook for this type yet.";
+    $("pbSteps").innerHTML = `<p style="font-size:.88rem;color:var(--muted)">Renewal steps for this document type are coming — for now, check the issuer's official site.</p>`;
+    $("pbDocs").innerHTML = ""; $("pbTip").style.display = "none";
+    dr.classList.add("on"); return;
+  }
+  const p = await res.json();
+  $("pbTitle").textContent = p.title;
+  $("pbMeta").textContent = `Start ~${p.leadDays} days before expiry · typical processing: ${p.typicalProcessing}`;
+  $("pbSteps").innerHTML = p.steps.map(s => `<label class="pb-step"><input type="checkbox"><span>${esc(s)}</span></label>`).join("");
+  $("pbDocs").innerHTML = p.documents.map(d => `<div class="pb-doc">${esc(d)}</div>`).join("");
+  $("pbTip").style.display = "block";
+  $("pbTip").innerHTML = "💡 " + esc(p.tip);
+  dr.classList.add("on");
+};
+$("drawerClose").onclick = () => $("drawer").classList.remove("on");
+
+/* ---------- export / import / sample ---------- */
+$("exportBtn").onclick = () => location.href = "/api/items/export";
+$("importFile").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const res = await fetch("/api/items/import", { method:"POST", headers:{"Content-Type":"application/json"}, body: await f.text() });
+  if (res.ok){ toast("Imported ✓"); load(); } else alert("Import failed — is it a RenewalBrain export?");
+  e.target.value = "";
+};
+$("sampleBtn").onclick = async () => {
+  $("sampleBtn").disabled = true; $("sampleBtn").textContent = "Setting up a sample life…";
+  const t = today();
+  const dstr = days => new Date(t.getTime()+days*DAY).toISOString().slice(0,10);
+  const sample = [
+    {title:"Passport — Kalaru", type:"passport", category:"Travel", issuer:"Dept. of Immigration", country:"LK", person:"Kalaru", expiresOn:dstr(240), notes:"Many destinations require 6 months validity."},
+    {title:"UK Student visa", type:"visa", category:"Travel", issuer:"UKVI", country:"UK", person:"Ishara", expiresOn:dstr(75), notes:"File the extension before expiry to keep status."},
+    {title:"Driving licence", type:"driving-license", category:"Vehicle", issuer:"Dept. of Motor Traffic", country:"LK", person:"Kalaru", expiresOn:dstr(40)},
+    {title:"Vehicle insurance — Toyota Aqua", type:"vehicle-insurance", category:"Vehicle", issuer:"Ceylinco", country:"LK", person:"Kalaru", expiresOn:dstr(20), notes:"Get quotes 3–4 weeks out."},
+    {title:"Revenue licence — Toyota Aqua", type:"vehicle-revenue-license", category:"Vehicle", issuer:"Provincial DMT", country:"LK", person:"Kalaru", expiresOn:dstr(-3), notes:"Needs current insurance + emission test."},
+    {title:"TV warranty — Samsung 55\"", type:"warranty", category:"Home", issuer:"Singer", country:"LK", person:"", expiresOn:dstr(170), notes:"Test everything before it ends."},
+    {title:"kalaru.dev domain", type:"domain", category:"Digital", issuer:"Namecheap", country:"*", person:"Kalaru", expiresOn:dstr(55), notes:"Auto-renew recommended."},
+    {title:"Health insurance — family", type:"health-insurance", category:"Health", issuer:"AIA", country:"LK", person:"Ishara", expiresOn:dstr(120)}
+  ];
+  for (const s of sample)
+    await fetch("/api/items", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(s) });
+  $("sampleBtn").disabled = false; $("sampleBtn").textContent = "Load a sample life →";
+  toast("Sample life loaded — this is what 'on time' looks like.");
+  load();
+};
+
+load();
+window.addEventListener("resize", () => renderRunway());
+</script>
+</body>
+</html>

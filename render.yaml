@@ -1,0 +1,14 @@
+# Render Blueprint — one-click deploy (Docker)
+# render.com > New + > Blueprint > pick this repo > paste key > Apply
+# FREE key: https://aistudio.google.com/apikey (GEMINI_API_KEY)
+# Then add SUPABASE_URL + SUPABASE_SERVICE_KEY in the Environment tab
+# (run supabase-setup.sql first). Without them: file mode, data lost on redeploy.
+services:
+  - type: web
+    name: renewalbrain
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
