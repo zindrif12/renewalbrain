@@ -13,6 +13,7 @@ string? geminiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 string? anthropicKey = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
 bool mockAi = Environment.GetEnvironmentVariable("MOCK_AI") == "1";
 string? supaUrl = Environment.GetEnvironmentVariable("SUPABASE_URL")?.TrimEnd('/');
+if (supaUrl is not null && supaUrl.EndsWith("/rest/v1")) supaUrl = supaUrl[..^"/rest/v1".Length];
 string? supaKey = Environment.GetEnvironmentVariable("SUPABASE_SERVICE_KEY");
 string dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? Path.Combine(AppContext.BaseDirectory, "data");
 Directory.CreateDirectory(dataDir);
@@ -224,7 +225,8 @@ app.MapPost("/api/items", async (JsonNode body) =>
         ["lastRenewedOn"] = (string?)body["lastRenewedOn"] ?? "",
         ["createdAtUtc"] = DateTime.UtcNow.ToString("o")
     };
-    await store.UpsertItem(id, item);
+    try { await store.UpsertItem(id, item); }
+    catch (Exception ex) { return Results.Json(new { error = "storage error — check Supabase setup (rb_items table + env vars)", detail = ex.Message }, statusCode: 502); }
     return Results.Content(item.ToJsonString(), "application/json");
 });
 
@@ -247,7 +249,8 @@ app.MapPatch("/api/items/{id}", async (string id, JsonNode body) =>
     }
     foreach (var f in new[] { "title", "issuer", "notes", "person" })
         if (existing[f] is JsonValue v2) existing[f] = Scrub(v2.GetValue<string>());
-    await store.UpsertItem(id, existing);
+    try { await store.UpsertItem(id, existing); }
+    catch (Exception ex) { return Results.Json(new { error = "storage error — check Supabase setup", detail = ex.Message }, statusCode: 502); }
     return Results.Content(existing.ToJsonString(), "application/json");
 });
 
